@@ -1,0 +1,106 @@
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Dependencies
+node_modules/
+bower_components/
+
+# Build output
+dist/
+build/
+out/
+
+# Test output and coverage
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# Package manager and tool caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+.eslintcache
+.stylelintcache
+
+# Logs and diagnostic reports
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime and temporary files
+pids/
+*.pid
+*.pid.lock
+*.seed
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Python caches used by local tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*.swn
+*~
+
+# Local static-server metadata
+.http-server/
+
+# Keep dependency lockfiles under version control.
+# Do not ignore package-lock.json, yarn.lock, pnpm-lock.yaml, or bun.lock.
