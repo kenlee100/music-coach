@@ -6,7 +6,11 @@
     <meta name="theme-color" content="#0b1020">
     <script>
       (() => {
-        const preference = localStorage.getItem('chordroom-theme') || 'system';
+        let preference = 'system';
+        try {
+          preference = localStorage.getItem('chordroom-theme') || 'system';
+        } catch {}
+        if (!['system', 'light', 'dark'].includes(preference)) preference = 'system';
         const dark = preference === 'dark' || (preference === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
         document.querySelector('meta[name="theme-color"]').content = dark ? '#0b1020' : '#f6f8fc';
@@ -84,6 +88,6 @@
       <footer><span>CHORDROOM / 2026</span><p>標準調弦 · 1–22 格</p><span>LISTEN / LOCATE / PLAY</span></footer>
     </main>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=7"></script>
+    <script type="module" src="./app.js?v=8"></script>
   </body>
 </html>
