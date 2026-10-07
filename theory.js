@@ -33,6 +33,37 @@ export const RHYTHMS = {
   swing: { label: 'Swing', subdivisions: 2 }
 };
 
+export const SCALE_DEFINITIONS = {
+  ionian: { id: 'ionian', label: '大音階（Ionian）', formula: '1 · 2 · 3 · 4 · 5 · 6 · 7', steps: [0, 2, 4, 5, 7, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 6], context: '大調中心的基本選擇。' },
+  lydian: { id: 'lydian', label: 'Lydian', formula: '1 · 2 · 3 · ♯4 · 5 · 6 · 7', steps: [0, 2, 4, 6, 7, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 6], context: '適合強調升四度的明亮色彩。' },
+  mixolydian: { id: 'mixolydian', label: 'Mixolydian', formula: '1 · 2 · 3 · 4 · 5 · 6 · ♭7', steps: [0, 2, 4, 5, 7, 9, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '常用於屬和弦或降七度色彩。' },
+  majorPentatonic: { id: 'majorPentatonic', label: '大調五聲音階', formula: '1 · 2 · 3 · 5 · 6', steps: [0, 2, 4, 7, 9], degrees: [0, 1, 2, 4, 5], context: '音數精簡，適合旋律與基本即興。' },
+  aeolian: { id: 'aeolian', label: '自然小音階（Aeolian）', formula: '1 · 2 · ♭3 · 4 · 5 · ♭6 · ♭7', steps: [0, 2, 3, 5, 7, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '自然小調中心的基本選擇。' },
+  dorian: { id: 'dorian', label: 'Dorian', formula: '1 · 2 · ♭3 · 4 · 5 · 6 · ♭7', steps: [0, 2, 3, 5, 7, 9, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '小三度配大六度，適合較明亮的小和弦語境。' },
+  phrygian: { id: 'phrygian', label: 'Phrygian', formula: '1 · ♭2 · ♭3 · 4 · 5 · ♭6 · ♭7', steps: [0, 1, 3, 5, 7, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '降二度帶來強烈的暗色張力。' },
+  minorPentatonic: { id: 'minorPentatonic', label: '小調五聲音階', formula: '1 · ♭3 · 4 · 5 · ♭7', steps: [0, 3, 5, 7, 10], degrees: [0, 2, 3, 4, 6], context: '常見的小調旋律與即興素材。' },
+  lydianDominant: { id: 'lydianDominant', label: 'Lydian Dominant', formula: '1 · 2 · 3 · ♯4 · 5 · 6 · ♭7', steps: [0, 2, 4, 6, 7, 9, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '屬七和弦上加入升四度色彩。' },
+  halfWholeDiminished: { id: 'halfWholeDiminished', label: '半－全減音階', formula: '1 · ♭2 · ♯2 · 3 · ♯4 · 5 · 6 · ♭7', steps: [0, 1, 3, 4, 6, 7, 9, 10], degrees: [0, 1, 1, 2, 3, 4, 5, 6], context: '對稱音階，常用於帶張力的屬七和弦。' },
+  locrian: { id: 'locrian', label: 'Locrian', formula: '1 · ♭2 · ♭3 · 4 · ♭5 · ♭6 · ♭7', steps: [0, 1, 3, 5, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '包含降五度，對應半減和弦的基本選擇。' },
+  locrianNatural2: { id: 'locrianNatural2', label: 'Locrian ♮2', formula: '1 · 2 · ♭3 · 4 · ♭5 · ♭6 · ♭7', steps: [0, 2, 3, 5, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6], context: '保留降五度並使用自然二度。' },
+  wholeHalfDiminished: { id: 'wholeHalfDiminished', label: '全－半減音階', formula: '1 · 2 · ♭3 · 4 · ♭5 · ♭6 · 6 · 7', steps: [0, 2, 3, 5, 6, 8, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 5, 6], context: '對稱音階，適合減七和弦色彩。' },
+  wholeTone: { id: 'wholeTone', label: '全音音階', formula: '1 · 2 · 3 · ♯4 · ♯5 · ♭7', steps: [0, 2, 4, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 6], context: '對稱的全音結構，適合增和弦色彩。' },
+  lydianAugmented: { id: 'lydianAugmented', label: 'Lydian Augmented', formula: '1 · 2 · 3 · ♯4 · ♯5 · 6 · 7', steps: [0, 2, 4, 6, 8, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 6], context: '同時包含升四度與升五度的明亮張力。' }
+};
+
+export const CHORD_SCALE_OPTIONS = {
+  '': { defaultId: 'ionian', options: ['ionian', 'lydian', 'mixolydian', 'majorPentatonic'] },
+  m: { defaultId: 'aeolian', options: ['aeolian', 'dorian', 'phrygian', 'minorPentatonic'] },
+  '7': { defaultId: 'mixolydian', options: ['mixolydian', 'lydianDominant', 'halfWholeDiminished'] },
+  maj7: { defaultId: 'ionian', options: ['ionian', 'lydian'] },
+  m7: { defaultId: 'aeolian', options: ['aeolian', 'dorian', 'phrygian', 'minorPentatonic'] },
+  'm7♭5': { defaultId: 'locrian', options: ['locrian', 'locrianNatural2'] },
+  dim: { defaultId: 'wholeHalfDiminished', options: ['wholeHalfDiminished', 'locrian'] },
+  aug: { defaultId: 'wholeTone', options: ['wholeTone', 'lydianAugmented'] },
+  sus2: { defaultId: 'ionian', options: ['ionian', 'dorian', 'mixolydian'] },
+  sus4: { defaultId: 'ionian', options: ['ionian', 'mixolydian', 'dorian'] }
+};
+
 export const OPEN_SHAPES = {
   C: { frets: 'x 3 2 0 1 0', label: '開放和弦' }, D: { frets: 'x x 0 2 3 2', label: '開放和弦' },
   E: { frets: '0 2 2 1 0 0', label: '開放和弦' }, F: { frets: '1 3 3 2 1 1', label: '六弦橫按和弦' },
@@ -87,6 +118,15 @@ export function getChord(name) {
   };
 }
 
+export function getScaleOptions(chord) {
+  const configuration = CHORD_SCALE_OPTIONS[chord.suffix] || CHORD_SCALE_OPTIONS[''];
+  return configuration.options.map(id => SCALE_DEFINITIONS[id]);
+}
+
+export function getDefaultScaleId(chord) {
+  return (CHORD_SCALE_OPTIONS[chord.suffix] || CHORD_SCALE_OPTIONS['']).defaultId;
+}
+
 export function presetItems(preset, key) {
   const rootIndex = PITCHES.indexOf(key);
   return preset.degrees.map((degree, index) =>
@@ -94,14 +134,12 @@ export function presetItems(preset, key) {
   );
 }
 
-export function scaleFor(chord) {
+export function scaleFor(chord, selectedId) {
   const rootName = chord.displayNotes[0];
-  if (chord.name.includes('m7♭5')) return { name: `${rootName} 洛克里亞`, steps: [0, 1, 3, 5, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6] };
-  if (chord.name.includes('dim')) return { name: `${rootName} 全－半減音階`, steps: [0, 2, 3, 5, 6, 8, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 5, 6] };
-  if (chord.name.includes('aug')) return { name: `${rootName} 全音音階`, steps: [0, 2, 4, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5] };
-  if (chord.name.endsWith('m') || chord.name.endsWith('m7')) return { name: `${rootName} 自然小音階`, steps: [0, 2, 3, 5, 7, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6] };
-  if (chord.name.endsWith('7') && !chord.name.endsWith('maj7')) return { name: `${rootName} 混合利底亞`, steps: [0, 2, 4, 5, 7, 9, 10], degrees: [0, 1, 2, 3, 4, 5, 6] };
-  return { name: `${rootName} 大音階`, steps: [0, 2, 4, 5, 7, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 6] };
+  const options = getScaleOptions(chord);
+  const defaultId = getDefaultScaleId(chord);
+  const definition = options.find(option => option.id === selectedId) || SCALE_DEFINITIONS[defaultId];
+  return { ...definition, name: `${rootName} ${definition.label}` };
 }
 
 export function shapeFor(chord) {

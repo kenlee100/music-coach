@@ -1,7 +1,7 @@
 import { PITCHES } from './theory.js';
 
 let audioContext;
-let activeNodes = [];
+const activeNodes = new Map([['transport', []], ['preview', []]]);
 
 export function getAudioContext() {
   audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
@@ -9,41 +9,55 @@ export function getAudioContext() {
   return audioContext;
 }
 
-function trackNode(node) {
-  activeNodes.push(node);
+function trackNode(node, group = 'preview') {
+  if (!activeNodes.has(group)) activeNodes.set(group, []);
+  activeNodes.get(group).push(node);
   node.onended = () => {
-    activeNodes = activeNodes.filter(item => item !== node);
+    activeNodes.set(group, activeNodes.get(group).filter(item => item !== node));
   };
 }
 
-export function stopAudio() {
-  activeNodes.forEach(node => {
-    try { node.stop(); } catch {}
+export function stopAudio(group) {
+  const groups = group ? [group] : [...activeNodes.keys()];
+  groups.forEach(name => {
+    (activeNodes.get(name) || []).forEach(node => {
+      try { node.stop(); } catch {}
+    });
+    activeNodes.set(name, []);
   });
-  activeNodes = [];
 }
 
-function frequency(note, octave = 4) {
-  return 440 * Math.pow(2, (PITCHES.indexOf(note) - 9 + (octave - 4) * 12) / 12);
+export function midiToFrequency(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-export function scheduleTone(note, start, duration, octave = 4, volume = 0.12) {
+export function scheduleMidiTone(midi, start, duration, volume = 0.12, group = 'preview') {
   const context = getAudioContext();
   const oscillator = context.createOscillator();
   const gain = context.createGain();
   oscillator.type = 'triangle';
-  oscillator.frequency.value = frequency(note, octave);
+  oscillator.frequency.value = midiToFrequency(midi);
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.exponentialRampToValueAtTime(volume, start + 0.018);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   oscillator.connect(gain).connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + duration + 0.03);
-  trackNode(oscillator);
+  trackNode(oscillator, group);
+  return oscillator;
+}
+
+export function scheduleTone(note, start, duration, octave = 4, volume = 0.12, group = 'preview') {
+  const midi = 12 * (octave + 1) + PITCHES.indexOf(note);
+  return scheduleMidiTone(midi, start, duration, volume, group);
 }
 
 export function playTone(note, delay = 0, duration = 1, octave = 4) {
   scheduleTone(note, getAudioContext().currentTime + delay, duration, octave);
+}
+
+export function playMidiTone(midi, delay = 0, duration = 0.32, volume = 0.12, group = 'preview') {
+  return scheduleMidiTone(midi, getAudioContext().currentTime + delay, duration, volume, group);
 }
 
 export function scheduleClick(start, accent, isBeat) {
@@ -57,9 +71,9 @@ export function scheduleClick(start, accent, isBeat) {
   oscillator.connect(gain).connect(context.destination);
   oscillator.start(start);
   oscillator.stop(start + 0.055);
-  trackNode(oscillator);
+  trackNode(oscillator, 'transport');
 }
 
 export function scheduleChord(chord, start, duration) {
-  chord.notes.forEach((note, index) => scheduleTone(note, start + index * 0.018, duration, index === 0 ? 3 : 4, 0.075));
+  chord.notes.forEach((note, index) => scheduleTone(note, start + index * 0.018, duration, index === 0 ? 3 : 4, 0.075, 'transport'));
 }

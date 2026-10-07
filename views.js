@@ -1,7 +1,8 @@
 import {
-  CHORDS, FRET_END, FRET_START, OPEN_SHAPES, PITCHES, PRESETS, RHYTHMS, STRINGS,
-  getChord, scaleFor, shapeFor, spellTone
+  CHORDS, FRET_END, FRET_START, OPEN_SHAPES, PITCHES, PRESETS, RHYTHMS,
+  getChord, getDefaultScaleId, getScaleOptions, shapeFor
 } from './theory.js';
+import { createFretboardModel } from './fretboard-model.js';
 
 export const byId = id => document.getElementById(id);
 
@@ -37,17 +38,16 @@ export function renderList(current, filter) {
   ));
 }
 
-export function renderFretboard(current) {
-  const root = current.notes[0];
-  const scaleInfo = scaleFor(current);
-  const scale = scaleInfo.steps.map(step => PITCHES[(PITCHES.indexOf(root) + step) % 12]);
-  const scaleNames = scale.map((note, index) => spellTone(current.displayNotes[0], scaleInfo.degrees[index], note));
+export function renderFretboard(current, selectedScaleId) {
   const isScale = byId('viewMode').value === 'scale';
-  const activeNotes = isScale ? scale : current.notes;
-  const activeNames = isScale ? scaleNames : current.displayNotes;
+  byId('toneLegendLabel').textContent = isScale ? '音階音' : '和弦組成音';
+  const model = createFretboardModel(current, isScale ? 'scale' : 'chord', selectedScaleId);
+  const scaleInfo = model.scale;
   byId('selectedName').textContent = current.name;
   byId('noteList').textContent = current.displayNotes.join(' · ');
+  byId('noteListMobile').textContent = current.displayNotes.join(' · ');
   byId('formula').textContent = current.formula;
+  byId('formulaMobile').textContent = current.formula;
   byId('scaleName').textContent = scaleInfo.name;
   byId('soundLabel').textContent = `${current.name} ${isScale ? scaleInfo.name : '和弦'}`;
   byId('shapeName').textContent = OPEN_SHAPES[current.name]?.label || '四弦音高配置';
@@ -61,9 +61,8 @@ export function renderFretboard(current) {
   insight.append(bold, document.createTextNode(detail || ''));
 
   const cells = [];
-  [...STRINGS].reverse().forEach((open, stringIndex) => {
-    const stringNumber = stringIndex + 1;
-    const stringName = stringNumber === 1 ? '高音 E' : stringNumber === 6 ? '低音 E' : `${open} 弦`;
+  [...model.strings].reverse().forEach(stringModel => {
+    const { stringNumber, openName: open, label: stringName } = stringModel;
     const label = document.createElement('div');
     label.className = 'string-label';
     label.setAttribute('aria-label', `第 ${stringNumber} 弦，${stringName}`);
@@ -73,23 +72,79 @@ export function renderFretboard(current) {
     small.textContent = stringNumber;
     label.append(strong, small);
     cells.push(label);
-    for (let fret = FRET_START; fret <= FRET_END; fret++) {
-      const note = PITCHES[(PITCHES.indexOf(open) + fret) % 12];
-      const active = activeNotes.includes(note);
-      const kind = note === root ? 'root' : active ? 'tone' : '';
-      const displayNote = active ? activeNames[activeNotes.indexOf(note)] : note;
+    stringModel.frets.forEach(cell => {
       const string = document.createElement('div');
-      string.className = 'string';
-      const button = document.createElement('button');
-      button.className = `note ${kind}`;
-      button.dataset.note = note;
-      button.setAttribute('aria-label', `第 ${stringNumber} 弦第 ${fret} 格：${displayNote}${kind === 'root' ? '，根音' : kind ? '，已選音' : ''}`);
-      button.textContent = kind ? displayNote : '';
-      string.append(button);
+      string.className = `string ${cell.fret > 7 ? 'far-fret' : ''}`;
+      const note = document.createElement(cell.active ? 'button' : 'span');
+      note.className = `note ${cell.kind} ${cell.active ? (isScale ? 'scale-tone' : 'chord-tone') : ''}`;
+      if (cell.active) {
+        note.dataset.stringNumber = cell.stringNumber;
+        note.dataset.fret = cell.fret;
+        note.dataset.midi = cell.midi;
+        note.dataset.pitchClass = cell.pitchClass;
+        note.dataset.displayName = cell.displayName;
+        const roleLabel = cell.kind === 'root' ? '根音' : isScale ? '音階音' : '和弦組成音';
+        note.setAttribute('aria-label', `第 ${stringNumber} 弦第 ${cell.fret} 格：${cell.displayName}，${roleLabel}`);
+        note.textContent = cell.displayName;
+      } else {
+        note.setAttribute('aria-hidden', 'true');
+      }
+      string.append(note);
       cells.push(string);
-    }
+    });
+  });
+  [3, 5, 7, 9, 12].forEach(fret => {
+    const marker = document.createElement('span');
+    marker.className = `fret-marker ${fret === 12 ? 'double' : ''}`;
+    marker.style.setProperty('--fret-position', fret - 0.5);
+    marker.setAttribute('aria-hidden', 'true');
+    cells.push(marker);
   });
   byId('fretboardGrid').replaceChildren(...cells);
+  return model;
+}
+
+export function renderScaleOptions(chord, selectedId) {
+  const options = getScaleOptions(chord);
+  const select = byId('scaleOptionSelect');
+  select.replaceChildren(...options.map(option => {
+    const element = document.createElement('option');
+    element.value = option.id;
+    element.textContent = option.label;
+    return element;
+  }));
+  const resolved = options.some(option => option.id === selectedId) ? selectedId : getDefaultScaleId(chord);
+  select.value = resolved;
+  byId('scaleOptionControl').hidden = byId('viewMode').value !== 'scale';
+  return resolved;
+}
+
+export function renderChordHint(hint) {
+  const container = byId('openStringHints');
+  byId('fretboardGrid').classList.toggle('chord-previewing', Boolean(hint));
+  if (!hint) {
+    container.replaceChildren();
+    container.hidden = true;
+    document.querySelectorAll('.note.hinted').forEach(note => note.classList.remove('hinted'));
+    return;
+  }
+  container.hidden = false;
+  const label = document.createElement('strong');
+  label.textContent = '空弦：';
+  container.replaceChildren(label, ...hint.openStrings.map(string => {
+    const span = document.createElement('span');
+    span.textContent = `${string.label}（0）`;
+    return span;
+  }));
+  hint.fretted.forEach(cell => {
+    byId('fretboardGrid').querySelector(`[data-string-number="${cell.stringNumber}"][data-fret="${cell.fret}"]`)?.classList.add('hinted');
+  });
+}
+
+export function renderSoundingCell(cell) {
+  document.querySelectorAll('.note.sounding').forEach(note => note.classList.remove('sounding'));
+  if (!cell) return;
+  byId('fretboardGrid').querySelector(`[data-string-number="${cell.stringNumber}"][data-fret="${cell.fret}"]`)?.classList.add('sounding');
 }
 
 export function renderFretLabels() {
@@ -126,6 +181,7 @@ export function renderPresets() {
 }
 
 export function renderSequence(sequence) {
+  const scrollLeft = byId('sequence').scrollLeft;
   if (!sequence.length) {
     const empty = document.createElement('p');
     empty.className = 'sequence-empty';
@@ -138,10 +194,9 @@ export function renderSequence(sequence) {
     const chord = getChord(name);
     const item = document.createElement('div');
     item.className = 'sequence-item';
-    const card = document.createElement('button');
+    item.dataset.index = index;
+    const card = document.createElement('div');
     card.className = 'sequence-card';
-    card.dataset.remove = index;
-    card.title = `移除 ${name}`;
     const strong = document.createElement('strong');
     const small = document.createElement('small');
     strong.textContent = name;
@@ -149,13 +204,16 @@ export function renderSequence(sequence) {
     card.append(strong, small);
     const controls = document.createElement('span');
     controls.className = 'move-controls';
-    [-1, 1].forEach(delta => {
-      const button = document.createElement('button');
-      button.dataset.move = `${index},${delta}`;
-      button.setAttribute('aria-label', `${name} ${delta < 0 ? '向前' : '向後'}移`);
-      button.textContent = delta < 0 ? '‹' : '›';
-      controls.append(button);
-    });
+    const handle = document.createElement('button');
+    handle.dataset.dragHandle = '';
+    handle.setAttribute('aria-label', `排序 ${name}，按空白鍵後使用左右方向鍵`);
+    handle.setAttribute('aria-pressed', 'false');
+    handle.textContent = '拖曳';
+    const remove = document.createElement('button');
+    remove.dataset.remove = index;
+    remove.setAttribute('aria-label', `移除 ${name}`);
+    remove.textContent = '×';
+    controls.append(handle, remove);
     item.append(card, controls);
     nodes.push(item);
     if (index < sequence.length - 1) {
@@ -166,6 +224,7 @@ export function renderSequence(sequence) {
     }
   });
   byId('sequence').replaceChildren(...nodes);
+  byId('sequence').scrollLeft = scrollLeft;
 }
 
 export function settingsText(settings) {
@@ -174,7 +233,7 @@ export function settingsText(settings) {
 
 export function renderTransport(state, settings, statusMessage = '') {
   const active = state.phase === 'countIn' || state.phase === 'playing' || state.phase === 'finishing';
-  byId('progressionPlayButton').textContent = active ? 'Ⅱ 暫停行進' : '▶ 行進';
+  byId('progressionPlayButton').textContent = active ? '■ 停止行進' : '▶ 行進';
   byId('progressionPlayButton').setAttribute('aria-pressed', String(active));
   byId('metronomeButton').textContent = state.metronome ? '■ 停止節拍器' : '● 節拍器';
   byId('metronomeButton').setAttribute('aria-pressed', String(state.metronome));
@@ -193,13 +252,21 @@ export function renderStep(step) {
     return;
   }
   if (step.phase === 'playing' && step.chordName) {
-    document.querySelectorAll('.sequence-card').forEach((card, index) => card.classList.toggle('playing', index === step.progressionIndex));
+    document.querySelectorAll('.sequence-card').forEach((card, index) => {
+      const playing = index === step.progressionIndex;
+      card.classList.toggle('playing', playing);
+      if (playing) card.setAttribute('aria-current', 'step');
+      else card.removeAttribute('aria-current');
+    });
     byId('transportStatus').textContent = `第 ${step.progressionIndex + 1} 顆 ${step.chordName} · ${step.settings.bpm} BPM · ${step.settings.meter}/4 · ${RHYTHMS[step.settings.rhythm].label}`;
   }
 }
 
 export function clearPlayingCards() {
-  document.querySelectorAll('.sequence-card').forEach(card => card.classList.remove('playing'));
+  document.querySelectorAll('.sequence-card').forEach(card => {
+    card.classList.remove('playing');
+    card.removeAttribute('aria-current');
+  });
 }
 
 export function populateKeys() {

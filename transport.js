@@ -117,7 +117,7 @@ export function createTransport({ getSequence, getSettings, onStateChange, onSte
 
   function startClock() {
     cancelFinish();
-    stopAudio();
+    stopAudio('transport');
     stopClock();
     activeSettings = { ...getSettings() };
     nextNoteTime = getAudioContext().currentTime + 0.07;
@@ -132,7 +132,7 @@ export function createTransport({ getSequence, getSettings, onStateChange, onSte
     runId++;
     if (!state.metronome) {
       stopClock();
-      stopAudio();
+      stopAudio('transport');
     }
     emitState();
   }
@@ -145,7 +145,7 @@ export function createTransport({ getSequence, getSettings, onStateChange, onSte
     if (!getSequence().length) return 'empty';
     const keepMetronome = state.metronome;
     stopClock();
-    stopAudio();
+    stopAudio('transport');
     state.metronome = keepMetronome;
     state.phase = getSettings().countIn ? 'countIn' : 'playing';
     state.progressionIndex = 0;
@@ -159,7 +159,7 @@ export function createTransport({ getSequence, getSettings, onStateChange, onSte
     if (state.metronome && state.phase === 'idle') startClock();
     if (!state.metronome && state.phase === 'idle') {
       stopClock();
-      stopAudio();
+      stopAudio('transport');
     }
     emitState();
   }
@@ -176,7 +176,7 @@ export function createTransport({ getSequence, getSettings, onStateChange, onSte
     state.metronome = false;
     state.progressionIndex = 0;
     stopClock();
-    stopAudio();
+    stopAudio('transport');
     emitState();
   }
 

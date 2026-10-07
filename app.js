@@ -1,13 +1,16 @@
-import { playTone } from './audio-engine.js';
-import { CHORDS, PITCHES, PRESETS, getChord, scaleFor, presetItems } from './theory.js';
+import { CHORDS, PITCHES, PRESETS, getChord, getDefaultScaleId, presetItems } from './theory.js';
+import { createChordPreview, createScalePlaybackQueue } from './fretboard-model.js';
+import { createPreviewController } from './preview-controller.js';
+import { createSequenceSortController } from './sequence-sort-controller.js';
 import {
   loadGuitarTheme, loadPracticeSettings, loadProgression, loadTheme,
   saveGuitarTheme, savePracticeSettings, saveProgression, saveTheme
 } from './storage.js';
 import { createTransport } from './transport.js';
 import {
-  byId, clearPlayingCards, populateKeys, renderFretboard, renderFretLabels,
-  renderList, renderPresets, renderSequence, renderStep, renderTransport, settingsText
+  byId, clearPlayingCards, populateKeys, renderChordHint, renderFretboard, renderFretLabels,
+  renderList, renderPresets, renderScaleOptions, renderSequence, renderSoundingCell,
+  renderStep, renderTransport, settingsText
 } from './views.js';
 
 const state = {
@@ -15,12 +18,14 @@ const state = {
   filter: 'all',
   key: 'C',
   sequence: [],
-  practice: loadPracticeSettings()
+  practice: loadPracticeSettings(),
+  selectedScaleId: 'ionian',
+  fretboardModel: null
 };
 state.sequence = loadProgression(presetItems(PRESETS[1], state.key));
 
 let toastTimer;
-let chordButtonTimer;
+let sequenceSortController;
 
 function toast(message) {
   const node = byId('toast');
@@ -32,7 +37,8 @@ function toast(message) {
 
 function refreshChordViews() {
   renderList(state.current, state.filter);
-  renderFretboard(state.current);
+  state.selectedScaleId = renderScaleOptions(state.current, state.selectedScaleId);
+  state.fretboardModel = renderFretboard(state.current, state.selectedScaleId);
 }
 
 function updateTransport(stateSnapshot = transport.snapshot(), message = '') {
@@ -50,9 +56,20 @@ const transport = createTransport({
   onFinish: () => updateTransport(transport.snapshot(), `行進完成 · ${settingsText(state.practice)}`)
 });
 
+const preview = createPreviewController({
+  onStateChange: previewState => {
+    const playing = previewState.mode === 'chord';
+    byId('playButton').classList.toggle('playing', playing);
+    byId('playButton').setAttribute('aria-pressed', String(playing));
+  },
+  onCellChange: renderSoundingCell,
+  onChordHint: renderChordHint
+});
+
 function choose(name) {
   const chord = CHORDS.find(item => item.name === name);
   if (!chord) return;
+  preview.cancel();
   state.current = chord;
   refreshChordViews();
   toast(`已選擇 ${name}，可加入目前行進`);
@@ -60,6 +77,11 @@ function choose(name) {
 
 function stopProgressionIfActive() {
   if (transport.snapshot().phase !== 'idle') transport.stopProgression();
+}
+
+function refreshSequence() {
+  sequenceSortController?.reset();
+  renderSequence(state.sequence);
 }
 
 function download() {
@@ -83,27 +105,16 @@ function download() {
 
 function playChord(chord = state.current, duration = 1.45) {
   transport.stopForPreview();
-  const button = byId('playButton');
-  button.classList.add('playing');
-  button.setAttribute('aria-pressed', 'true');
-  chord.notes.forEach((note, index) => playTone(note, index * 0.025, duration, index === 0 ? 3 : 4));
-  clearTimeout(chordButtonTimer);
-  chordButtonTimer = setTimeout(() => {
-    button.classList.remove('playing');
-    button.setAttribute('aria-pressed', 'false');
-  }, duration * 1000);
+  const midis = chord.notes.map((note, index) => 12 * ((index === 0 ? 3 : 4) + 1) + PITCHES.indexOf(note));
+  preview.playChord(midis, createChordPreview(chord), duration);
   toast(`${chord.name} 正在發聲`);
 }
 
 function playScale() {
   transport.stopForPreview();
-  const info = scaleFor(state.current);
-  const notes = [
-    ...info.steps.map(step => PITCHES[(PITCHES.indexOf(state.current.notes[0]) + step) % 12]),
-    state.current.notes[0]
-  ];
-  notes.forEach((note, index) => playTone(note, index * 0.3, 0.28, index === notes.length - 1 ? 5 : 4));
-  toast(`${info.name} 上行`);
+  const queue = createScalePlaybackQueue(state.fretboardModel);
+  preview.playScale(queue);
+  toast(`${state.fretboardModel.scale.name}，依低音弦到高音弦播放`);
 }
 
 function applyGuitarTheme(theme, announce = false) {
@@ -173,10 +184,28 @@ byId('chordList').addEventListener('click', event => {
 byId('addButton').addEventListener('click', () => {
   stopProgressionIfActive();
   state.sequence.push(state.current.name);
-  renderSequence(state.sequence);
+  refreshSequence();
   toast(`${state.current.name} 已加入目前行進`);
 });
-byId('viewMode').addEventListener('change', () => renderFretboard(state.current));
+byId('viewMode').addEventListener('change', () => {
+  preview.cancel();
+  refreshChordViews();
+});
+byId('scaleOptionSelect').addEventListener('change', event => {
+  preview.cancel();
+  state.selectedScaleId = event.target.value;
+  state.fretboardModel = renderFretboard(state.current, state.selectedScaleId);
+});
+byId('fretboardGrid').addEventListener('click', event => {
+  const note = event.target.closest('button.note[data-midi]');
+  if (!note) return;
+  transport.stopForPreview();
+  preview.playNote({
+    stringNumber: Number(note.dataset.stringNumber),
+    fret: Number(note.dataset.fret),
+    midi: Number(note.dataset.midi)
+  });
+});
 byId('keySelect').addEventListener('change', event => {
   stopProgressionIfActive();
   state.key = event.target.value;
@@ -188,30 +217,20 @@ byId('presets').addEventListener('click', event => {
   stopProgressionIfActive();
   state.sequence = presetItems(PRESETS[Number(button.dataset.preset)], state.key);
   document.querySelectorAll('.preset').forEach(item => item.classList.toggle('active', item === button));
-  renderSequence(state.sequence);
+  refreshSequence();
   toast('已載入常見和弦行進');
 });
 byId('sequence').addEventListener('click', event => {
-  stopProgressionIfActive();
-  const move = event.target.closest('[data-move]');
-  if (move) {
-    const [index, delta] = move.dataset.move.split(',').map(Number);
-    const target = index + delta;
-    if (target < 0 || target >= state.sequence.length) return;
-    [state.sequence[index], state.sequence[target]] = [state.sequence[target], state.sequence[index]];
-    renderSequence(state.sequence);
-    toast('和弦順序已調整');
-    return;
-  }
   const button = event.target.closest('[data-remove]');
   if (!button) return;
+  stopProgressionIfActive();
   const [removed] = state.sequence.splice(Number(button.dataset.remove), 1);
-  renderSequence(state.sequence);
+  refreshSequence();
   toast(`已移除 ${removed}`);
 });
 byId('saveButton').addEventListener('click', () => {
   saveProgression(state.sequence);
-  toast('行進與練習設定已儲存');
+  toast('和弦行進已儲存');
 });
 byId('exportButton').addEventListener('click', download);
 byId('guitarTheme').addEventListener('change', event => applyGuitarTheme(event.target.value, true));
@@ -230,12 +249,16 @@ byId('countInToggle').addEventListener('change', changePracticeSettings);
 byId('playButton').addEventListener('click', () => playChord());
 byId('scalePlayButton').addEventListener('click', playScale);
 byId('progressionPlayButton').addEventListener('click', () => {
+  preview.cancel();
   const result = transport.toggleProgression();
   if (result === 'empty') toast('先加入至少一個和弦');
   if (result === 'started') updateTransport(transport.snapshot(), state.practice.countIn ? '預備拍準備中' : '行進準備中');
   if (result === 'stopped') updateTransport(transport.snapshot(), `已停止 · ${settingsText(state.practice)}`);
 });
-byId('metronomeButton').addEventListener('click', () => transport.toggleMetronome());
+byId('metronomeButton').addEventListener('click', () => {
+  preview.cancel();
+  transport.toggleMetronome();
+});
 byId('loopButton').addEventListener('click', () => {
   const enabled = transport.toggleLoop();
   toast(enabled ? '重複播放已開啟' : '重複播放已關閉');
@@ -243,8 +266,22 @@ byId('loopButton').addEventListener('click', () => {
 
 initializeControls();
 renderList(state.current, state.filter);
-renderFretboard(state.current);
+state.selectedScaleId = renderScaleOptions(state.current, getDefaultScaleId(state.current));
+state.fretboardModel = renderFretboard(state.current, state.selectedScaleId);
 renderFretLabels();
 renderPresets();
 renderSequence(state.sequence);
 updateTransport();
+
+sequenceSortController = createSequenceSortController(byId('sequence'), {
+  beforeSort: stopProgressionIfActive,
+  onReorder: (from, to) => {
+    const [moved] = state.sequence.splice(from, 1);
+    state.sequence.splice(to, 0, moved);
+    renderSequence(state.sequence);
+  },
+  onAnnounce: message => {
+    byId('sequenceSortStatus').textContent = message;
+    toast(message);
+  }
+});
