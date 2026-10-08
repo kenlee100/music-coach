@@ -100,6 +100,12 @@ export function renderFretboard(current, selectedScaleId) {
     marker.setAttribute('aria-hidden', 'true');
     cells.push(marker);
   });
+  for (let stringNumber = 1; stringNumber <= 6; stringNumber += 1) {
+    const stringLine = document.createElement('div');
+    stringLine.className = `fretboard-string fretboard-string-${stringNumber}`;
+    stringLine.setAttribute('aria-hidden', 'true');
+    cells.push(stringLine);
+  }
   byId('fretboardGrid').replaceChildren(...cells);
   return model;
 }
