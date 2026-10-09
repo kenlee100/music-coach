@@ -30,7 +30,9 @@ export function renderList(current, filter) {
       const name = document.createElement('strong');
       const notes = document.createElement('small');
       name.textContent = chord.name;
-      notes.textContent = chord.displayNotes.join(' · ');
+      name.className = 'chord-name';
+      notes.className = 'chord-tone';
+      notes.textContent = chord.displayNotes.join(', ');
       button.append(name, notes);
       return button;
     })
@@ -205,8 +207,10 @@ export function renderSequence(sequence) {
     card.className = 'sequence-card';
     const strong = document.createElement('strong');
     const small = document.createElement('small');
+    strong.className = 'chord-name';
     strong.textContent = name;
-    small.textContent = chord.displayNotes.join(' · ');
+    small.className = 'chord-tone';
+    small.textContent = chord.displayNotes.join(', ');
     card.append(strong, small);
     const controls = document.createElement('span');
     controls.className = 'move-controls';

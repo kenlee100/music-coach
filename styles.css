@@ -19,7 +19,7 @@
   --motion-medium: .18s;
   --motion-theme: .2s;
   --motion-toast: .22s;
-  --display: "Fraunces", serif;
+  --display: "Noto Sans TC", sans-serif;
   --body: "Noto Sans TC", sans-serif;
   --mono: "DM Mono", monospace;
   /* Shared component roles resolve through the active color theme. */
@@ -46,11 +46,11 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f6f8fc; --surface: #ffffff; --surface-2: #edf2fa; --surface-3: #e2e9f5;
-  --paper: #18233a; --ink: #111827; --dark: #f8faff; --muted: #59657a;
+  --paper: #9eb1d0; --ink: #111827; --dark: #f8faff; --muted: #59657a;
   --line: #cbd5e1; --line-strong: #8796b1; --primary: #2563eb; --primary-hover: #1d4ed8; --secondary: #7c3aed; --focus: #0891b2; --on-primary: #ffffff; --on-secondary: #ffffff;
   --note-root-bg: #1d4ed8; --note-tone-bg: #6d28d9; --note-root-ring: #b7d0ff;
   --field: #f8faff; --soft-fill: rgba(37, 99, 235, .09); --hero-copy: #334155; --card: #f4f7fc; --sequence-bg: #e8eef8; --inactive-note: #d8dee9; --inactive-note-text: #475569;
-  --search-placeholder: #77746d; --chord-card-fill: #ffffff05;
+  --search-placeholder: #77746d; --chord-card-fill: #e2e9f540;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -103,14 +103,14 @@ a { color: inherit; }
 .filter.active, .filter:hover, .preset:hover, .preset.active { border-color: var(--primary); background: var(--primary); color: var(--dark); }
 .chord-list { min-height: 0; flex: 1 1 0; display: grid; align-content: start; gap: 5px; overflow: auto; scrollbar-color: var(--line-strong) transparent; }
 .chord-card { min-height: 58px; display: flex; justify-content: space-between; align-items: center; padding: 10px var(--space-3); border: var(--border-width) solid transparent; background: var(--chord-card-fill); color: var(--ink); text-align: left; transition: background-color var(--motion-medium) ease, border-color var(--motion-medium) ease, transform var(--motion-medium) ease; }
-.chord-card:hover { border-color: var(--line-strong); transform: translateX(3px); }
+.chord-card:hover { border-color: var(--line-strong);}
 .chord-card.active { border-color: var(--primary); background: var(--soft-fill); }
+.chord-card.active .chord-name { margin-right: auto;}
 .chord-card.active::before { width: 5px; height: 5px; margin-right: var(--space-2); border-radius: var(--radius-round); background: var(--primary); content: ""; }
-.chord-card strong { font: 700 19px var(--display); }
-.chord-card small, .sequence-card small { color: var(--muted); font: var(--font-size-caption) var(--mono); }
+.chord-card .chord-name { color: var(--primary); font: 700 19px var(--display); }
+.chord-card .chord-tone, .sequence-card small { color: var(--muted); font: var(--font-size-caption) var(--mono); }
 .fretboard-panel { min-width: 0; padding: 28px clamp(18px, 3vw, 38px); }
 .selected-bar { align-items: flex-end; }
-.chord-name { color: var(--primary); font: 700 clamp(50px, 5.3vw, 74px)/.78 var(--display); letter-spacing: -.075em; }
 .notes-readout { margin-left: auto; text-align: right; }
 .notes-readout strong, .shape-card strong, .scale-card strong { font: 500 var(--font-size-detail) var(--mono); }
 .add-button, .transport-play { min-height: var(--control-height); padding: 0 17px; border: 0; background: var(--action-bg); color: var(--action-text); font-weight: 900; white-space: nowrap; transition: transform var(--motion-fast) ease, background-color var(--motion-fast) ease; }
@@ -198,7 +198,7 @@ button.note:focus-visible { outline: var(--focus-width) solid var(--focus); outl
 .preset strong { display: block; margin-top: 4px; font: 600 17px var(--display); }
 .sequence { min-height: 124px; display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: var(--space-4); border: var(--border-width) solid var(--line-strong); background: var(--sequence-bg); }
 .sequence-item { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; }
-.sequence-card { min-width: 98px; padding: 14px; border: var(--border-width) solid transparent; background: var(--paper); color: var(--dark); text-align: left; }
+.sequence-card { display: flex; align-items: center; gap: var(--space-2); min-width: 98px; padding: 14px; border: var(--border-width) solid transparent; background: var(--paper); color: var(--dark); text-align: left; }
 .sequence-card.playing { background: var(--primary); color: var(--on-primary); box-shadow: 0 0 0 3px var(--secondary); }
 .sequence-card.playing::before { display: block; margin-bottom: var(--space-1); content: "播放中"; font: 700 var(--font-size-caption) var(--mono); }
 .sequence-card strong { font: 700 26px var(--display); }
