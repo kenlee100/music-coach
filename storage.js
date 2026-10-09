@@ -1,4 +1,4 @@
-import { getChord, RHYTHMS } from './theory.js';
+import { CHORDS, PITCHES, getChord, getDefaultScaleId, getScaleOptions, RHYTHMS } from './theory.js';
 
 const KEYS = {
   progression: 'chordcraft-progression',
@@ -49,21 +49,29 @@ export function saveProgression(sequence) {
   return writeValue(KEYS.progression, JSON.stringify(safeSequence));
 }
 
-function normalizePracticeSettings(stored) {
+function normalizePracticeSettings(stored, restoreSelections = false) {
+  const currentChord = restoreSelections && CHORDS.some(chord => chord.name === stored.currentChord)
+    ? stored.currentChord : 'Cmaj7';
+  const chord = getChord(currentChord);
   return {
-    version: 1,
+    version: 2,
     bpm: clampTempo(stored.bpm),
     meter: Number(stored.meter) === 3 ? 3 : 4,
     rhythm: RHYTHMS[stored.rhythm] ? stored.rhythm : 'quarter',
-    countIn: stored.countIn !== false
+    countIn: stored.countIn !== false,
+    currentChord,
+    key: restoreSelections && PITCHES.includes(stored.key) ? stored.key : 'C',
+    viewMode: restoreSelections && stored.viewMode === 'scale' ? 'scale' : 'chord',
+    selectedScaleId: restoreSelections && getScaleOptions(chord).some(option => option.id === stored.selectedScaleId)
+      ? stored.selectedScaleId : getDefaultScaleId(chord)
   };
 }
 
 function migratePracticeSettings(stored) {
   if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return normalizePracticeSettings({});
   const version = stored.version == null ? 0 : Number(stored.version);
-  if (version === 0) return normalizePracticeSettings(stored);
-  if (version === 1) return normalizePracticeSettings(stored);
+  if (version === 0 || version === 1) return normalizePracticeSettings(stored);
+  if (version === 2) return normalizePracticeSettings(stored, true);
   return normalizePracticeSettings({});
 }
 
@@ -72,13 +80,7 @@ export function loadPracticeSettings() {
 }
 
 export function savePracticeSettings(settings) {
-  return writeValue(KEYS.practice, JSON.stringify({
-    version: 1,
-    bpm: clampTempo(settings.bpm),
-    meter: settings.meter === 3 ? 3 : 4,
-    rhythm: RHYTHMS[settings.rhythm] ? settings.rhythm : 'quarter',
-    countIn: settings.countIn !== false
-  }));
+  return writeValue(KEYS.practice, JSON.stringify(normalizePracticeSettings(settings, true)));
 }
 
 export function loadTheme() {

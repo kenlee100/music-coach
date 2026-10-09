@@ -1,4 +1,4 @@
-import { CHORDS, PITCHES, PRESETS, getChord, getDefaultScaleId, presetItems } from './theory.js';
+import { CHORDS, PITCHES, PRESETS, getChord, presetItems } from './theory.js';
 import { createChordPreview, createScalePlaybackQueue } from './fretboard-model.js';
 import { createPreviewController } from './preview-controller.js';
 import { createSequenceSortController } from './sequence-sort-controller.js';
@@ -13,13 +13,14 @@ import {
   renderStep, renderTransport, settingsText
 } from './views.js';
 
+const practice = loadPracticeSettings();
 const state = {
-  current: CHORDS.find(chord => chord.name === 'Cmaj7'),
+  current: CHORDS.find(chord => chord.name === practice.currentChord),
   filter: 'all',
-  key: 'C',
+  key: practice.key,
   sequence: [],
-  practice: loadPracticeSettings(),
-  selectedScaleId: 'ionian',
+  practice,
+  selectedScaleId: practice.selectedScaleId,
   fretboardModel: null
 };
 state.sequence = loadProgression(presetItems(PRESETS[1], state.key));
@@ -33,6 +34,18 @@ function toast(message) {
   node.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => node.classList.remove('show'), 2100);
+}
+
+function setSaveStatus(saved) {
+  byId('saveStatus').textContent = saved ? '已自動儲存' : '儲存失敗，重新開啟後可能不會保留';
+}
+
+function persistPracticeSettings() {
+  setSaveStatus(savePracticeSettings(state.practice));
+}
+
+function persistProgression() {
+  setSaveStatus(saveProgression(state.sequence));
 }
 
 function refreshChordViews() {
@@ -72,6 +85,9 @@ function choose(name) {
   preview.cancel();
   state.current = chord;
   refreshChordViews();
+  state.practice.currentChord = chord.name;
+  state.practice.selectedScaleId = state.selectedScaleId;
+  persistPracticeSettings();
   toast(`已選擇 ${name}，可加入目前行進`);
 }
 
@@ -82,6 +98,7 @@ function stopProgressionIfActive() {
 function refreshSequence() {
   sequenceSortController?.reset();
   renderSequence(state.sequence);
+  persistProgression();
 }
 
 function download() {
@@ -123,7 +140,7 @@ function applyGuitarTheme(theme, announce = false) {
   byId('guitarTheme').value = value;
   byId('fretboardGrid').classList.toggle('acoustic', isAcoustic);
   byId('fretboardGrid').setAttribute('aria-label', `${isAcoustic ? '木吉他' : '電吉他'}指板`);
-  saveGuitarTheme(value);
+  setSaveStatus(saveGuitarTheme(value));
   if (announce) toast(`已切換為${isAcoustic ? '木吉他' : '電吉他'}配色`);
 }
 
@@ -134,7 +151,7 @@ function applyTheme(preference, announce = false) {
   document.documentElement.dataset.theme = resolved;
   document.querySelector('meta[name="theme-color"]').content = resolved === 'dark' ? '#0b1020' : '#f6f8fc';
   byId('themeSelect').value = value;
-  saveTheme(value);
+  setSaveStatus(saveTheme(value));
   if (announce) toast(`已切換為${value === 'system' ? '跟隨系統' : value === 'dark' ? '深色' : '淺色'}主題`);
 }
 
@@ -144,7 +161,7 @@ function clampTempo(value) {
 
 function changePracticeSettings() {
   state.practice = {
-    version: 1,
+    ...state.practice,
     bpm: clampTempo(byId('tempoInput').value),
     meter: Number(byId('meterSelect').value) === 3 ? 3 : 4,
     rhythm: byId('rhythmSelect').value,
@@ -152,7 +169,7 @@ function changePracticeSettings() {
   };
   byId('tempoInput').value = state.practice.bpm;
   byId('tempoRange').value = state.practice.bpm;
-  savePracticeSettings(state.practice);
+  persistPracticeSettings();
   const transportState = transport.snapshot();
   if (transportState.phase === 'idle' && !transportState.metronome) updateTransport(transportState);
   else toast('新設定將於下一小節套用');
@@ -160,6 +177,8 @@ function changePracticeSettings() {
 
 function initializeControls() {
   populateKeys();
+  byId('keySelect').value = state.key;
+  byId('viewMode').value = state.practice.viewMode;
   byId('tempoInput').value = state.practice.bpm;
   byId('tempoRange').value = state.practice.bpm;
   byId('meterSelect').value = String(state.practice.meter);
@@ -190,11 +209,15 @@ byId('addButton').addEventListener('click', () => {
 byId('viewMode').addEventListener('change', () => {
   preview.cancel();
   refreshChordViews();
+  state.practice.viewMode = byId('viewMode').value;
+  persistPracticeSettings();
 });
 byId('scaleOptionSelect').addEventListener('change', event => {
   preview.cancel();
   state.selectedScaleId = event.target.value;
   state.fretboardModel = renderFretboard(state.current, state.selectedScaleId);
+  state.practice.selectedScaleId = state.selectedScaleId;
+  persistPracticeSettings();
 });
 byId('fretboardGrid').addEventListener('click', event => {
   const note = event.target.closest('button.note[data-midi]');
@@ -209,6 +232,8 @@ byId('fretboardGrid').addEventListener('click', event => {
 byId('keySelect').addEventListener('change', event => {
   stopProgressionIfActive();
   state.key = event.target.value;
+  state.practice.key = state.key;
+  persistPracticeSettings();
   toast(`已切換至 ${state.key} 調，選擇預設即可套用轉調`);
 });
 byId('presets').addEventListener('click', event => {
@@ -227,10 +252,6 @@ byId('sequence').addEventListener('click', event => {
   const [removed] = state.sequence.splice(Number(button.dataset.remove), 1);
   refreshSequence();
   toast(`已移除 ${removed}`);
-});
-byId('saveButton').addEventListener('click', () => {
-  saveProgression(state.sequence);
-  toast('和弦行進已儲存');
 });
 byId('exportButton').addEventListener('click', download);
 byId('guitarTheme').addEventListener('change', event => applyGuitarTheme(event.target.value, true));
@@ -266,7 +287,7 @@ byId('loopButton').addEventListener('click', () => {
 
 initializeControls();
 renderList(state.current, state.filter);
-state.selectedScaleId = renderScaleOptions(state.current, getDefaultScaleId(state.current));
+state.selectedScaleId = renderScaleOptions(state.current, state.selectedScaleId);
 state.fretboardModel = renderFretboard(state.current, state.selectedScaleId);
 renderFretLabels();
 renderPresets();
@@ -279,6 +300,7 @@ sequenceSortController = createSequenceSortController(byId('sequence'), {
     const [moved] = state.sequence.splice(from, 1);
     state.sequence.splice(to, 0, moved);
     renderSequence(state.sequence);
+    persistProgression();
   },
   onAnnounce: message => {
     byId('sequenceSortStatus').textContent = message;
