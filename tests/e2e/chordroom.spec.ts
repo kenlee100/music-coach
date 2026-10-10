@@ -6,6 +6,8 @@ test('core chord and timeline flow', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await expect(page.locator('main[data-ready="true"]')).toBeAttached()
   await expect(page.getByRole('heading', { name: '今天想練什麼？' })).toBeVisible()
+  await expect(page.locator('.fretboard-string')).toHaveCount(6)
+  await expect(page.locator('.fretboard-wrap')).toHaveCSS('overflow', 'hidden')
   await page.getByRole('searchbox', { name: '搜尋和弦' }).fill('Dm7')
   await page.getByRole('button', { name: /^Dm7 D · F · A · C$/ }).click()
   await expect(page.locator('.chord-name')).toHaveText('Dm7')

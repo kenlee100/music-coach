@@ -13,6 +13,11 @@ export const CHORDS: Chord[] = PITCHES.flatMap(root => TYPES.map(([suffix, type,
   notes: steps.map(step => PITCHES[(PITCHES.indexOf(root) + step) % 12]!)
 })))
 export const getChord = (name: string) => CHORDS.find(chord => chord.name === name) || CHORDS[0]!
+export function noteToMidi(note: string, octave: number) {
+  const pitch = PITCHES.indexOf(note as typeof PITCHES[number])
+  if (pitch < 0) throw new Error(`Unknown pitch: ${note}`)
+  return 12 * (octave + 1) + pitch
+}
 
 export const PRESETS = [
   { title: '流行萬用', names: ['C', 'G', 'Am', 'F'] },
