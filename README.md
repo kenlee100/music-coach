@@ -5,7 +5,7 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 ## 專案特色
 
 - 標準調弦吉他指板，顯示第 1–22 格。
-- 和弦組成音、公式及指板位置提示。
+- 和弦組成音、公式、相容音階切換及指板位置提示。
 - 電吉他與木吉他指板配色。
 - 跟隨系統、淺色及深色主題。
 - 40–240 BPM、3/4 與 4/4 拍號。
@@ -25,7 +25,7 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 
 - `app/pages/index.vue`：唯一頁面與功能協調。
 - `app/components/ChordLibrary.vue`：和弦搜尋、分類與選取。
-- `app/components/GuitarFretboard.vue`：目前和弦資訊與 1–22 格指板。
+- `app/components/GuitarFretboard.vue`：目前和弦、相容音階與 1–22 格指板。
 - `app/components/RhythmTimeline.vue`：時間軸拖移、縮放及鍵盤操作。
 - `app/composables/usePracticeTransport.ts`：播放 phase、排程、節拍器與生命週期清理。
 - `app/domain/`：不依賴 Vue 的樂理與時間軸規則。

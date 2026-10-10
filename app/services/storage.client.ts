@@ -1,18 +1,21 @@
 import type { Meter, Timeline } from '~/domain/timeline'
 import { migrateProgression } from '~/domain/timeline'
+import { CHORDS, getChord, getDefaultScaleId, getScaleOptions } from '~/domain/theory'
 
 const PROGRESSION_KEY = 'chordcraft-progression'
 const PRACTICE_KEY = 'chordroom-practice'
 const THEME_KEY = 'chordroom-theme'
 const GUITAR_KEY = 'chordroom-guitar-theme'
-const DEFAULT_PRACTICE: PracticeSettings = { version: 3, bpm: 90, meter: 4, countIn: true, currentChord: 'Cmaj7' }
+const DEFAULT_PRACTICE: PracticeSettings = { version: 4, bpm: 90, meter: 4, countIn: true, currentChord: 'Cmaj7', viewMode: 'chord', selectedScaleId: 'ionian' }
 
 export interface PracticeSettings {
-  version: 3
+  version: 4
   bpm: number
   meter: Meter
   countIn: boolean
   currentChord: string
+  viewMode: 'chord' | 'scale'
+  selectedScaleId: string
 }
 
 const read = (key: string) => { try { return localStorage.getItem(key) } catch { return null } }
@@ -25,14 +28,23 @@ export const normalizePractice = (value: unknown): PracticeSettings => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return { ...DEFAULT_PRACTICE }
   const stored = value as Record<string, unknown>
   const version = stored.version == null ? 0 : Number(stored.version)
-  if (![0, 1, 2, 3].includes(version)) return { ...DEFAULT_PRACTICE }
+  if (![0, 1, 2, 3, 4].includes(version)) return { ...DEFAULT_PRACTICE }
   const restoreSelection = version >= 2
+  const currentChord = restoreSelection && typeof stored.currentChord === 'string' && CHORDS.some(chord => chord.name === stored.currentChord)
+    ? stored.currentChord
+    : DEFAULT_PRACTICE.currentChord
+  const chord = getChord(currentChord)
+  const selectedScaleId = restoreSelection && typeof stored.selectedScaleId === 'string' && getScaleOptions(chord).some(option => option.id === stored.selectedScaleId)
+    ? stored.selectedScaleId
+    : getDefaultScaleId(chord)
   return {
-    version: 3 as const,
+    version: 4 as const,
     bpm: Math.min(240, Math.max(40, Number(stored.bpm) || DEFAULT_PRACTICE.bpm)),
     meter: Number(stored.meter) === 3 ? 3 as const : 4 as const,
     countIn: stored.countIn !== false,
-    currentChord: restoreSelection && typeof stored.currentChord === 'string' ? stored.currentChord : DEFAULT_PRACTICE.currentChord
+    currentChord,
+    viewMode: restoreSelection && stored.viewMode === 'scale' ? 'scale' : 'chord',
+    selectedScaleId
   }
 }
 export const loadPractice = () => normalizePractice(json(PRACTICE_KEY))

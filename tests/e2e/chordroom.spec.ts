@@ -7,6 +7,8 @@ test('core chord and timeline flow', async ({ page }) => {
   await expect(page.locator('main[data-ready="true"]')).toBeAttached()
   await expect(page.getByRole('heading', { name: '今天想練什麼？' })).toBeVisible()
   await expect(page.locator('.fretboard-string')).toHaveCount(6)
+  await expect(page.locator('.fret-marker')).toHaveCount(5)
+  await expect(page.locator('.fret-marker.double')).toHaveCount(1)
   await expect(page.locator('.fretboard-wrap')).toHaveCSS('overflow', 'hidden')
   await page.getByRole('searchbox', { name: '搜尋和弦' }).fill('Dm7')
   await page.getByRole('button', { name: /^Dm7 D · F · A · C$/ }).click()
@@ -16,6 +18,18 @@ test('core chord and timeline flow', async ({ page }) => {
   await page.getByRole('button', { name: '播放行進' }).click()
   await expect(page.getByRole('button', { name: '停止行進' })).toBeVisible()
   expect(errors).toEqual([])
+})
+
+test('compatible scale view can be selected and persisted', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await expect(page.locator('main[data-ready="true"]')).toBeAttached()
+  await page.getByLabel('FRETBOARD VIEW').selectOption('scale')
+  await expect(page.getByLabel('COMPATIBLE SCALE')).toBeVisible()
+  await page.getByLabel('COMPATIBLE SCALE').selectOption('lydian')
+  await expect(page.locator('.scale-summary')).toContainText('C Lydian')
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByLabel('FRETBOARD VIEW')).toHaveValue('scale')
+  await expect(page.getByLabel('COMPATIBLE SCALE')).toHaveValue('lydian')
 })
 
 test('light theme and mobile layout remain operable', async ({ page }) => {

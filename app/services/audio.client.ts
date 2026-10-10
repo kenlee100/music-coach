@@ -22,3 +22,7 @@ export async function playChord(chord: Chord, duration = 1.2) {
     return playMidi(noteToMidi(note, octave), duration, index * .018, .075)
   }))
 }
+export async function playMidiSequence(midis: number[], interval = .22) {
+  stopAudio()
+  await Promise.all(midis.map((midi, index) => playMidi(midi, Math.min(.28, interval * .9), index * interval, .12)))
+}
