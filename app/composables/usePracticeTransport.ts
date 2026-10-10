@@ -88,6 +88,12 @@ export function usePracticeTransport(options: TransportOptions) {
     await startPlayback()
   }
 
+  function stopPlayback() {
+    if (!playing.value) return
+    resetPlayback()
+    status.value = `已停止 · ${options.bpm.value} BPM`
+  }
+
   const startMetronome = async () => {
     clearInterval(metronomeTimer)
     const audio = await import('~/services/audio.client')
@@ -110,5 +116,5 @@ export function usePracticeTransport(options: TransportOptions) {
     clearInterval(metronomeTimer)
   })
 
-  return { phase, playing, playingEventId, status, metronome, togglePlayback, toggleMetronome }
+  return { phase, playing, playingEventId, status, metronome, togglePlayback, stopPlayback, toggleMetronome }
 }

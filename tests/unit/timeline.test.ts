@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addChord, barTicks, migrateProgression, moveWithPush, normalizeTimeline, resizeWithPush, type TimelineEvent } from '../../app/domain/timeline'
+import { addChord, appendBar, barTicks, createEmptyTimeline, createPresetTimeline, migrateProgression, moveWithPush, normalizeTimeline, removeBar, resizeWithPush, type TimelineEvent } from '../../app/domain/timeline'
 
 const event = (id: string, startTick: number, durationTicks: TimelineEvent['durationTicks'] = 16): TimelineEvent => ({ id, chord: 'C', startTick, durationTicks })
 const validChord = (name: string) => ['C', 'G', 'Am'].includes(name)
@@ -32,6 +32,21 @@ describe('timeline domain', () => {
     timeline = addChord(timeline, 'C', 4)
     timeline = addChord(timeline, 'G', 4)
     expect(timeline.bars[0]!.events.map(item => item.startTick)).toEqual([0, 16])
+  })
+
+  it('adds and removes bars while retaining one editable bar', () => {
+    const initial = createEmptyTimeline()
+    const appended = appendBar(initial)
+    expect(appended.bars).toHaveLength(2)
+    expect(removeBar(appended, appended.bars[1]!.id).bars).toHaveLength(1)
+    expect(removeBar(initial, initial.bars[0]!.id).bars).toHaveLength(1)
+  })
+
+  it('builds presets as one full-bar chord per bar in both meters', () => {
+    const fourFour = createPresetTimeline(['C', 'G', 'Am'], 4)
+    const threeFour = createPresetTimeline(['C', 'G'], 3)
+    expect(fourFour.bars.map(bar => bar.events[0]!.durationTicks)).toEqual([64, 64, 64])
+    expect(threeFour.bars.map(bar => bar.events[0]!.durationTicks)).toEqual([48, 48])
   })
 
   it('pushes a collision chain right and stops at boundaries', () => {

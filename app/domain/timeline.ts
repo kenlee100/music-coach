@@ -19,6 +19,25 @@ export const isDuration = (value: number, meter?: Meter): value is DurationTicks
 export const createId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 export const createEmptyTimeline = (): Timeline => ({ version: 2, bars: [{ id: createId('bar'), events: [] }] })
 
+export function appendBar(timeline: Timeline): Timeline {
+  return { ...timeline, bars: [...timeline.bars, { id: createId('bar'), events: [] }] }
+}
+
+export function removeBar(timeline: Timeline, barId: string): Timeline {
+  const bars = timeline.bars.filter(bar => bar.id !== barId)
+  return { ...timeline, bars: bars.length ? bars : createEmptyTimeline().bars }
+}
+
+export function createPresetTimeline(chords: string[], meter: Meter): Timeline {
+  const durationTicks = barTicks(meter) as DurationTicks
+  return {
+    version: 2,
+    bars: chords.length
+      ? chords.map(chord => ({ id: createId('bar'), events: [{ id: createId('event'), chord, startTick: 0, durationTicks }] }))
+      : createEmptyTimeline().bars
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value))
 
 export function isValidEvent(value: unknown, meter: Meter): value is TimelineEvent {
@@ -44,12 +63,8 @@ export function migrateProgression(value: unknown, meter: Meter, validChord: (na
   const current = normalizeTimeline(value, meter, validChord)
   if (current) return current
   if (!Array.isArray(value)) return createEmptyTimeline()
-  const durationTicks = barTicks(meter) as DurationTicks
   const chords = value.filter((name): name is string => typeof name === 'string' && validChord(name))
-  return {
-    version: 2,
-    bars: chords.length ? chords.map(chord => ({ id: createId('bar'), events: [{ id: createId('event'), chord, startTick: 0, durationTicks }] })) : createEmptyTimeline().bars
-  }
+  return createPresetTimeline(chords, meter)
 }
 
 function shifted(events: TimelineEvent[], ids: Set<string>, delta: number) {
