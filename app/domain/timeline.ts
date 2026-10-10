@@ -1,7 +1,7 @@
 export const TICKS_PER_WHOLE = 64
 export const DURATION_TICKS = [64, 32, 16, 8, 4, 2, 1] as const
 export type Meter = 3 | 4
-export type DurationTicks = typeof DURATION_TICKS[number]
+export type DurationTicks = typeof DURATION_TICKS[number] | 48
 
 export interface TimelineEvent {
   id: string
@@ -14,21 +14,26 @@ export interface TimelineBar { id: string; events: TimelineEvent[] }
 export interface Timeline { version: 2; bars: TimelineBar[] }
 
 export const barTicks = (meter: Meter) => meter * 16
-export const isDuration = (value: number): value is DurationTicks => DURATION_TICKS.includes(value as DurationTicks)
+export const isDuration = (value: number, meter?: Meter): value is DurationTicks =>
+  DURATION_TICKS.includes(value as typeof DURATION_TICKS[number]) || (meter === 3 && value === barTicks(meter))
 export const createId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 export const createEmptyTimeline = (): Timeline => ({ version: 2, bars: [{ id: createId('bar'), events: [] }] })
 
-export function isValidEvent(event: TimelineEvent, meter: Meter) {
-  return Boolean(event.id && event.chord && Number.isInteger(event.startTick) && event.startTick >= 0 &&
-    isDuration(event.durationTicks) && event.startTick + event.durationTicks <= barTicks(meter))
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value))
+
+export function isValidEvent(value: unknown, meter: Meter): value is TimelineEvent {
+  if (!isRecord(value)) return false
+  return Boolean(typeof value.id === 'string' && value.id && typeof value.chord === 'string' && value.chord &&
+    Number.isInteger(value.startTick) && Number(value.startTick) >= 0 && Number.isInteger(value.durationTicks) &&
+    isDuration(Number(value.durationTicks), meter) && Number(value.startTick) + Number(value.durationTicks) <= barTicks(meter))
 }
 
 export function normalizeTimeline(value: unknown, meter: Meter, validChord: (name: string) => boolean): Timeline | null {
-  if (!value || typeof value !== 'object' || (value as Timeline).version !== 2 || !Array.isArray((value as Timeline).bars)) return null
-  if ((value as Timeline).bars.some(bar => !Array.isArray(bar.events) || bar.events.some(event => !isValidEvent(event, meter) || !validChord(event.chord)))) return null
-  const bars = (value as Timeline).bars.map(bar => ({
+  if (!isRecord(value) || value.version !== 2 || !Array.isArray(value.bars)) return null
+  if (value.bars.some(bar => !isRecord(bar) || !Array.isArray(bar.events) || bar.events.some(event => !isValidEvent(event, meter) || !validChord(event.chord)))) return null
+  const bars = value.bars.map(bar => ({
     id: typeof bar.id === 'string' && bar.id ? bar.id : createId('bar'),
-    events: Array.isArray(bar.events) ? bar.events.filter(event => isValidEvent(event, meter) && validChord(event.chord)) : []
+    events: (bar.events as unknown[]).filter((event): event is TimelineEvent => isValidEvent(event, meter) && validChord(event.chord))
   }))
   if (bars.some(bar => [...bar.events].sort((a, b) => a.startTick - b.startTick)
     .some((event, index, events) => index > 0 && events[index - 1]!.startTick + events[index - 1]!.durationTicks > event.startTick))) return null
@@ -39,7 +44,7 @@ export function migrateProgression(value: unknown, meter: Meter, validChord: (na
   const current = normalizeTimeline(value, meter, validChord)
   if (current) return current
   if (!Array.isArray(value)) return createEmptyTimeline()
-  const durationTicks: DurationTicks = meter === 4 ? 64 : 32
+  const durationTicks = barTicks(meter) as DurationTicks
   const chords = value.filter((name): name is string => typeof name === 'string' && validChord(name))
   return {
     version: 2,

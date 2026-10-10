@@ -4,13 +4,14 @@ import { addChord, createEmptyTimeline, type Meter, type Timeline } from '~/doma
 
 const current = ref<Chord>(getChord('Cmaj7'))
 const theme = ref('system'); const guitarTheme = ref('electric'); const bpm = ref(90); const meter = ref<Meter>(4); const countIn = ref(true)
-const loop = ref(false); const metronome = ref(false)
-const timeline = ref<Timeline>(createEmptyTimeline()); const toast = ref(''); const playing = ref(false); const playingEventId = ref(''); const status = ref('90 BPM · 4/4')
-const announcement = ref(''); let toastTimer: ReturnType<typeof setTimeout> | undefined; let playTimer: ReturnType<typeof setTimeout> | undefined
+const loop = ref(false)
+const timeline = ref<Timeline>(createEmptyTimeline()); const toast = ref('')
+const announcement = ref(''); let toastTimer: ReturnType<typeof setTimeout> | undefined
 const hydrated = ref(false)
 const chordNames = new Set(CHORDS.map(chord => chord.name))
 
 function notify(message: string) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 2400) }
+const { playing, playingEventId, status, metronome, togglePlayback, toggleMetronome } = usePracticeTransport({ timeline, bpm, meter, countIn, loop, notify })
 function applyTheme(value: string) {
   theme.value = value; const dark = value === 'dark' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
   document.documentElement.dataset.theme = dark ? 'dark' : 'light'; document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b1020' : '#f6f8fc')
@@ -31,29 +32,6 @@ function changeMeter(value: number) {
 }
 async function soundChord() { const audio = await import('~/services/audio.client'); audio.playChord(current.value); notify(`${current.value.name} 正在發聲`) }
 async function soundCell(midi: number) { const audio = await import('~/services/audio.client'); audio.playMidi(midi) }
-async function togglePlayback() {
-  if (playing.value) { clearTimeout(playTimer); playing.value = false; playingEventId.value = ''; (await import('~/services/audio.client')).stopAudio(); status.value = `已停止 · ${bpm.value} BPM`; return }
-  const queue = timeline.value.bars.flatMap((bar, barIndex) => bar.events.map(event => ({ ...event, barIndex }))).sort((a, b) => a.barIndex - b.barIndex || a.startTick - b.startTick)
-  if (!queue.length) return notify('先加入至少一個和弦')
-  playing.value = true; const beatSeconds = 60 / bpm.value; const countInSeconds = countIn.value ? meter.value * beatSeconds : 0; status.value = countIn.value ? '預備拍準備中' : '播放中'
-  const audio = await import('~/services/audio.client')
-  queue.forEach(event => {
-    const start = countInSeconds + (event.barIndex * meter.value * 16 + event.startTick) / 16 * beatSeconds
-    setTimeout(() => { if (!playing.value) return; playingEventId.value = event.id; audio.playChord(getChord(event.chord), Math.max(.12, event.durationTicks / 16 * beatSeconds * .88)) }, start * 1000)
-  })
-  const total = countInSeconds + timeline.value.bars.length * meter.value * beatSeconds
-  playTimer = setTimeout(() => { playing.value = false; playingEventId.value = ''; status.value = '行進完成'; if (loop.value) togglePlayback() }, total * 1000)
-}
-let metronomeTimer: ReturnType<typeof setInterval> | undefined
-async function toggleMetronome() {
-  metronome.value = !metronome.value
-  clearInterval(metronomeTimer)
-  if (metronome.value) {
-    const audio = await import('~/services/audio.client')
-    audio.playMidi(84, .08)
-    metronomeTimer = setInterval(() => audio.playMidi(84, .08), 60000 / bpm.value)
-  }
-}
 function download() { const content = timeline.value.bars.map((bar, index) => `第 ${index + 1} 小節：${bar.events.map(event => `${event.chord}@${event.startTick}/${event.durationTicks}`).join('、') || '休止'}`).join('\n'); const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' })); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'chordroom-timeline.txt'; anchor.click(); URL.revokeObjectURL(url) }
 
 onMounted(async () => {
@@ -62,7 +40,8 @@ onMounted(async () => {
   timeline.value = storage.loadTimeline(meter.value, name => chordNames.has(name)); theme.value = storage.loadTheme(); guitarTheme.value = storage.loadGuitarTheme(); applyTheme(theme.value)
   hydrated.value = true
 })
-watch([bpm, countIn], () => { status.value = `${bpm.value} BPM · ${meter.value}/4`; if (import.meta.client) persist() })
+watch([bpm, meter, countIn], () => { if (import.meta.client) persist() })
+onUnmounted(() => clearTimeout(toastTimer))
 </script>
 
 <template>

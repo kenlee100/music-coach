@@ -3,7 +3,7 @@ import { DURATION_TICKS, barTicks, moveWithPush, resizeWithPush, type DurationTi
 
 const props = defineProps<{ modelValue: Timeline; meter: Meter; playingEventId?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: Timeline]; remove: [barId: string, eventId: string]; announce: [message: string] }>()
-const labels: Record<number, string> = { 64: '全音符', 32: '二分', 16: '四分', 8: '八分', 4: '十六分', 2: '三十二分', 1: '六十四分' }
+const labels: Record<number, string> = { 64: '全音符', 48: '附點二分', 32: '二分', 16: '四分', 8: '八分', 4: '十六分', 2: '三十二分', 1: '六十四分' }
 const drag = ref<{ barId: string; event: TimelineEvent; originX: number; edge?: 'left' | 'right'; preview?: TimelineEvent[] } | null>(null)
 
 function updateBar(barId: string, events: TimelineEvent[]) { emit('update:modelValue', { ...props.modelValue, bars: props.modelValue.bars.map(bar => bar.id === barId ? { ...bar, events } : bar) }) }

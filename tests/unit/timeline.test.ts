@@ -14,12 +14,17 @@ describe('timeline domain', () => {
     const fourFour = migrateProgression(['C', 'G'], 4, validChord)
     expect(fourFour.bars).toHaveLength(2)
     expect(fourFour.bars[0]!.events[0]!.durationTicks).toBe(64)
-    expect(migrateProgression(['Am'], 3, validChord).bars[0]!.events[0]!.durationTicks).toBe(32)
+    expect(migrateProgression(['Am'], 3, validChord).bars[0]!.events[0]!.durationTicks).toBe(48)
   })
 
   it('rejects overlapping or out-of-range stored events', () => {
     expect(normalizeTimeline({ version: 2, bars: [{ id: 'b', events: [event('a', 0), event('b', 8)] }] }, 4, validChord)).toBeNull()
     expect(normalizeTimeline({ version: 2, bars: [{ id: 'b', events: [event('a', 40, 16)] }] }, 3, validChord)).toBeNull()
+  })
+
+  it('rejects malformed bars without throwing', () => {
+    expect(() => normalizeTimeline({ version: 2, bars: [null] }, 4, validChord)).not.toThrow()
+    expect(normalizeTimeline({ version: 2, bars: [null] }, 4, validChord)).toBeNull()
   })
 
   it('adds quarter-note chords to the earliest available gap', () => {
