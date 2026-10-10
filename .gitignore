@@ -104,5 +104,4 @@ $RECYCLE.BIN/
 # Local static-server metadata
 .http-server/
 
-# Keep dependency lockfiles under version control.
-# Do not ignore package-lock.json, yarn.lock, pnpm-lock.yaml, or bun.lock.
+# Keep the pnpm lockfile under version control.

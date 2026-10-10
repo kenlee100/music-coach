@@ -163,7 +163,7 @@ components:
 
 ## Overview
 
-Chordroom 是用於搜尋和弦、閱讀吉他指板、試聽與節拍練習的單頁工具。視覺語言採深色控制台、鮮明的藍色根音與紫色組成音，並提供既有的亮色主題。`DESIGN.md` 的 token 是規範值；[`styles.css`](./styles.css) 是瀏覽器實際執行值。修改風格時須同步更新兩者，不應只改文件或只改 CSS。
+Chordroom 是用於搜尋和弦、閱讀吉他指板、試聽與節拍練習的單頁工具。視覺語言採深色控制台、鮮明的藍色根音與紫色組成音，並提供既有的亮色主題。`DESIGN.md` 的 token 是規範值；[`app/assets/css/main.css`](./app/assets/css/main.css) 是瀏覽器實際執行值。修改風格時須同步更新兩者，不應只改文件或只改 CSS。
 
 ## Colors
 
@@ -174,7 +174,7 @@ Chordroom 是用於搜尋和弦、閱讀吉他指板、試聽與節拍練習的�
 
 ## Typography
 
-- Fraunces 用於大標題、和弦名稱及卡片標題；Noto Sans TC 用於敘述；DM Mono 用於技術標籤、數值、指板音名。實際字體堆疊在 CSS `--display`、`--body`、`--mono`，字體載入設定在 [`index.html`](./index.html)。
+- 目前敘述、大標題、技術標籤、數值與指板音名皆使用 Noto Sans TC fallback。實際字體堆疊定義在 [`app/assets/css/main.css`](./app/assets/css/main.css) 的 `--display`、`--body`、`--mono`。
 - YAML `body` 的 16px 是頁面基準排版角色；目前密集的操作區使用 `body-small` 14px（CSS `--font-size-body`），兩者不可混為同一層級。共用字級 `--font-size-caption`、`--font-size-small`、`--font-size-detail`、`--font-size-body` 分別為 11、12、13、14px；不得將既有小於 11px 的字級帶回。YAML 的 `hero-title-min` 是大型標題的最小值；實際 `clamp()` 與特定標題大小仍保留元件規則，以免破壞響應式排版。
 - 指板音符固定為 34px 圓點與 14px 字，六弦標籤及琴格號碼維持現有字級。不要以全域 `button` 或 `small` 規則覆蓋它們。
 

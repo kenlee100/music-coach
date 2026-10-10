@@ -5,7 +5,7 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 ## 專案特色
 
 - 標準調弦吉他指板，顯示第 1–22 格。
-- 和弦組成音、相容音階及常用指型提示。
+- 和弦組成音、公式及指板位置提示。
 - 電吉他與木吉他指板配色。
 - 跟隨系統、淺色及深色主題。
 - 40–240 BPM、3/4 與 4/4 拍號。
@@ -24,7 +24,10 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 主要模組：
 
 - `app/pages/index.vue`：唯一頁面與功能協調。
+- `app/components/ChordLibrary.vue`：和弦搜尋、分類與選取。
+- `app/components/GuitarFretboard.vue`：目前和弦資訊與 1–22 格指板。
 - `app/components/RhythmTimeline.vue`：時間軸拖移、縮放及鍵盤操作。
+- `app/composables/usePracticeTransport.ts`：播放 phase、排程、節拍器與生命週期清理。
 - `app/domain/`：不依賴 Vue 的樂理與時間軸規則。
 - `app/services/`：client-only Web Audio 與 localStorage。
 - `app/assets/css/main.css`：主題、元件與響應式樣式。
@@ -33,7 +36,7 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 ## 環境需求
 
 - Node.js 22.22.2 以上或相容的新版 LTS。
-- npm 10 以上。
+- pnpm 11.3.0。
 - 支援 Web Audio API 的現代瀏覽器。
 
 > 專案必須透過 Nuxt 開發伺服器或靜態輸出開啟，不支援 `file://`。
@@ -43,8 +46,8 @@ Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和�
 在專案根目錄執行：
 
 ```bash
-npm install
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 接著用瀏覽器開啟：
@@ -58,15 +61,25 @@ http://127.0.0.1:3000/
 ### 驗證與靜態輸出
 
 ```bash
-npm run test
-npm run typecheck
-npm run test:e2e
-npm run generate
+pnpm test
+pnpm typecheck
+pnpm test:e2e
+pnpm generate
 ```
+
+### 環境變數
+
+複製 `.env.example` 為 `.env` 後可調整：
+
+- `NUXT_HOST`、`NUXT_PORT`：本機 Nuxt host 與 port。
+- `NUXT_APP_BASE_URL`：靜態部署的 base URL。
+- `PLAYWRIGHT_HOST`、`PLAYWRIGHT_PORT`：E2E 測試伺服器位置。
+
+BPM、拍號、主題等使用者偏好屬產品狀態，保存在 localStorage，不由環境變數控制。
 
 ## 靜態部署
 
-執行 `npm run generate` 後，部署 `.output/public`。GitHub Pages 子路徑可透過 `NUXT_APP_BASE_URL=/music-coach/` 產生。
+執行 `pnpm generate` 後，部署 `.output/public`。GitHub Pages 子路徑可透過 `NUXT_APP_BASE_URL=/music-coach/` 產生。
 
 部署後至少確認：
 

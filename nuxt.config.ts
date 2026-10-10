@@ -1,7 +1,13 @@
+const devPort = Number.parseInt(process.env.NUXT_PORT || '3000', 10)
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-10-10',
   devtools: { enabled: false },
   css: ['~/assets/css/main.css'],
+  devServer: {
+    host: process.env.NUXT_HOST || '127.0.0.1',
+    port: Number.isFinite(devPort) ? devPort : 3000
+  },
   app: {
     baseURL: process.env.NUXT_APP_BASE_URL || '/',
     head: {
