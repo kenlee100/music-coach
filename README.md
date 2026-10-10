@@ -1,5 +1,7 @@
 # Chordroom
 
+[線上 Demo](https://kenlee100.github.io/music-coach/)
+
 Chordroom 是以 Nuxt、Vue 3、TypeScript 與 Web Audio API 製作的吉他和弦練習工具。它提供和弦查詢、吉他指板定位、多小節和弦時間軸與節拍練習。
 
 ## 專案特色
