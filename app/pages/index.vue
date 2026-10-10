@@ -25,7 +25,7 @@ function notify(message: string) {
   toastTimer = setTimeout(() => { toast.value = '' }, 2400)
 }
 
-const { playing, playingEventId, status, metronome, togglePlayback, stopPlayback, toggleMetronome } = usePracticeTransport({ timeline, bpm, meter, countIn, loop, notify })
+const { phase, playing, playingEventId, playbackTick, status, metronome, togglePlayback, stopPlayback, toggleMetronome } = usePracticeTransport({ timeline, bpm, meter, countIn, loop, notify })
 const timelineHasEvents = computed(() => timeline.value.bars.some(bar => bar.events.length > 0))
 const selectedPreset = computed(() => PRESETS.find(preset => preset.title === selectedPresetTitle.value) || PRESETS[0])
 
@@ -201,7 +201,7 @@ onUnmounted(() => clearTimeout(toastTimer))
         <div class="progression-meta"><label>拍號<select :value="meter" @change="changeMeter(Number(($event.target as HTMLSelectElement).value))"><option :value="4">4/4</option><option :value="3">3/4</option></select></label><label class="tempo-control">速度<span class="tempo-input"><input v-model.number="bpm" type="range" min="40" max="240"><input v-model.number="bpm" type="number" min="40" max="240"><span>BPM</span></span></label><label class="count-in-control"><input v-model="countIn" type="checkbox"><span>預備拍</span></label></div>
       </div>
       <div class="preset-picker"><label for="progression-preset">常用和弦行進</label><select id="progression-preset" v-model="selectedPresetTitle"><option v-for="preset in PRESETS" :key="preset.title" :value="preset.title">{{ preset.title }}：{{ preset.names.join(' – ') }}</option></select><button type="button" class="preset-apply" @click="applyPreset">套用行進</button></div>
-      <RhythmTimeline v-model="timeline" :meter="meter" :playing-event-id="playingEventId" @remove="removeEvent" @add-bar="addBar" @remove-bar="removeBar" @announce="message => { announcement = message; persist() }" />
+      <RhythmTimeline v-model="timeline" :meter="meter" :playing-event-id="playingEventId" :playback-tick="playbackTick" :playback-phase="phase" @remove="removeEvent" @add-bar="addBar" @remove-bar="removeBar" @announce="message => { announcement = message; persist() }" />
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
       <div class="transport"><button class="transport-play" :aria-pressed="playing" @click="togglePlayback">{{ playing ? '■ 停止行進' : '▶ 播放行進' }}</button><button class="timeline-control" :aria-pressed="metronome" @click="toggleMetronome">● 節拍器</button><button class="timeline-control" :aria-pressed="loop" @click="loop = !loop">↻ 重複</button><p role="status">{{ status }}</p><div class="export-actions"><span class="save-status">變更會自動儲存</span><button @click="download">下載 .txt</button></div></div>
     </section>

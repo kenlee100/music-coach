@@ -16,10 +16,12 @@ interface TransportOptions {
 export function usePracticeTransport(options: TransportOptions) {
   const phase = ref<TransportPhase>('idle')
   const playingEventId = ref('')
+  const playbackTick = ref<number | null>(null)
   const status = ref(`${options.bpm.value} BPM · ${options.meter.value}/4`)
   const metronome = ref(false)
   const playbackTimers = new Set<ReturnType<typeof setTimeout>>()
   let metronomeTimer: ReturnType<typeof setInterval> | undefined
+  let playbackFrame: number | undefined
   let generation = 0
 
   const playing = computed(() => phase.value !== 'idle')
@@ -34,12 +36,24 @@ export function usePracticeTransport(options: TransportOptions) {
     playbackTimers.forEach(timer => clearTimeout(timer))
     playbackTimers.clear()
   }
+  const clearPlaybackFrame = () => {
+    if (playbackFrame !== undefined) cancelAnimationFrame(playbackFrame)
+    playbackFrame = undefined
+  }
+  const followPlayback = (run: number, startedAt: number, totalTicks: number, beatSeconds: number) => {
+    if (run !== generation || phase.value !== 'playing') return
+    const elapsedSeconds = (performance.now() - startedAt) / 1000
+    playbackTick.value = Math.min(totalTicks, elapsedSeconds / beatSeconds * 16)
+    if (playbackTick.value < totalTicks) playbackFrame = requestAnimationFrame(() => followPlayback(run, startedAt, totalTicks, beatSeconds))
+  }
   const stopAudio = () => { void import('~/services/audio.client').then(audio => audio.stopAudio()) }
   const resetPlayback = () => {
     generation += 1
     clearPlaybackTimers()
+    clearPlaybackFrame()
     phase.value = 'idle'
     playingEventId.value = ''
+    playbackTick.value = null
     stopAudio()
   }
 
@@ -53,10 +67,20 @@ export function usePracticeTransport(options: TransportOptions) {
     const run = ++generation
     const beatSeconds = 60 / options.bpm.value
     const countInSeconds = options.countIn.value ? options.meter.value * beatSeconds : 0
+    const totalTicks = options.timeline.value.bars.length * options.meter.value * 16
     const audio = await import('~/services/audio.client')
     if (run !== generation) return
     phase.value = options.countIn.value ? 'count-in' : 'playing'
     status.value = options.countIn.value ? '預備拍準備中' : '播放中'
+    playbackTick.value = null
+
+    schedule(() => {
+      if (run !== generation) return
+      phase.value = 'playing'
+      status.value = '播放中'
+      playbackTick.value = 0
+      followPlayback(run, performance.now(), totalTicks, beatSeconds)
+    }, countInSeconds * 1000)
 
     queue.forEach(event => {
       const start = countInSeconds + (event.barIndex * options.meter.value * 16 + event.startTick) / 16 * beatSeconds
@@ -72,8 +96,10 @@ export function usePracticeTransport(options: TransportOptions) {
     const total = countInSeconds + options.timeline.value.bars.length * options.meter.value * beatSeconds
     schedule(() => {
       if (run !== generation) return
+      clearPlaybackFrame()
       phase.value = 'idle'
       playingEventId.value = ''
+      playbackTick.value = totalTicks
       status.value = '行進完成'
       if (options.loop.value) void startPlayback()
     }, total * 1000)
@@ -108,13 +134,17 @@ export function usePracticeTransport(options: TransportOptions) {
   }
 
   watch(options.bpm, () => { if (metronome.value) void startMetronome() })
+  watch(options.timeline, () => { if (!playing.value) playbackTick.value = null }, { deep: true })
   watch([options.bpm, options.meter], () => {
-    if (!playing.value) status.value = `${options.bpm.value} BPM · ${options.meter.value}/4`
+    if (!playing.value) {
+      playbackTick.value = null
+      status.value = `${options.bpm.value} BPM · ${options.meter.value}/4`
+    }
   })
   onUnmounted(() => {
     resetPlayback()
     clearInterval(metronomeTimer)
   })
 
-  return { phase, playing, playingEventId, status, metronome, togglePlayback, stopPlayback, toggleMetronome }
+  return { phase, playing, playingEventId, playbackTick, status, metronome, togglePlayback, stopPlayback, toggleMetronome }
 }
