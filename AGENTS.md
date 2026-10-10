@@ -112,38 +112,36 @@
 
 ## 架構決策
 
-- 使用瀏覽器原生 HTML、CSS、JavaScript、ES Modules 與 Web Audio API。
-- 目前不使用 Vite、React、Vue、npm 套件或建置步驟。
-- 不要只為拆分模組而導入打包工具；原生模組需以相對 `.js` 路徑引用。
-- 僅在需求出現 TypeScript、npm 套件、自動化測試、大量音訊資產、多頁入口或框架時，重新評估 Vite。
+- 使用 Nuxt 4、Vue 3、TypeScript、Vite 與 Web Audio API。
+- 目前僅保留根路由 `/`；沒有正式需求時不得建立空白頁面。
+- 使用 `nuxt generate` 靜態輸出，不設定全域 `ssr: false`。瀏覽器 API 必須隔離於 client lifecycle 或 `.client.ts` service。
+- 不自行加入 Pinia或 UI 元件套件；跨頁共享狀態確實增加時再評估。
 - 專案必須持續支援 GitHub Pages 或一般靜態 HTTP 主機。
 - 不將直接使用 `file://` 開啟視為支援情境。
 
 ## 模組責任
 
-- `app.js`：程式啟動、應用狀態、事件協調與模組組裝。
-- `theory.js`：和弦、音階、拼音、調弦、指型與預設行進。
-- `audio-engine.js`：共用 AudioContext、音訊節點與聲音產生。
-- `transport.js`：節拍器、預備拍、節奏、行進狀態及 lookahead 排程。
-- `storage.js`：localStorage 安全讀寫、資料驗證、預設值與版本遷移。
-- `views.js`：DOM 建立與畫面渲染。
-- `styles.css`：語意色彩、主題、元件與響應式版面。
-- `index.html`：頁面結構、原生 module 入口及主題防閃爍初始化。
+- `app/pages/`：路由與頁面層協調。
+- `app/components/`：Vue UI 元件與事件介面。
+- `app/domain/`：不依賴 Vue 的樂理、tick、碰撞與時間軸資料規則。
+- `app/services/`：localStorage 與 Web Audio 等 browser-only 整合。
+- `app/assets/css/`：語意色彩、主題、元件與響應式版面。
+- `tests/unit/`、`tests/e2e/`：Vitest 領域驗證與 Playwright 實際介面流程。
 
 修改時維持單向依賴，避免模組循環：
 
-- `theory.js` 不依賴其他專案模組。
-- audio、storage、views 可依賴 theory。
-- transport 可依賴 audio 與 theory。
-- app 負責組裝各模組。
+- domain 不依賴 Vue、DOM、localStorage 或 Web Audio。
+- services 可依賴 domain，但只在 client 生命週期載入。
+- components 透過 props、events 與 composables 溝通。
+- pages 負責組裝，不將碰撞或音樂時間計算寫進模板。
 
 ## 程式與資料規範
 
-- JavaScript 使用 2-space 縮排，遵循目前專案風格。
+- TypeScript、JavaScript 與 Vue SFC 使用 2-space 縮排。
 - 動態文字優先使用 `textContent`、`createElement` 與 `replaceChildren`，不要將儲存資料直接插入 `innerHTML`。
 - 播放器狀態使用 `transport.js` 的明確 phase，不要改回多個互斥布林值。
 - 音訊節點必須可集中停止；修改排程時要考慮 AudioContext 時鐘、前瞻排程、舊回呼及完成狀態。
-- 每顆和弦固定佔一小節；播放中修改 BPM、拍號或節奏應於下一小節套用。
+- 時間軸以六十四分音符為整數最小單位；事件不得跨小節或重疊。
 - 主題偏好與吉他指板材質偏好必須保持獨立。
 
 ## 儲存相容性
@@ -164,30 +162,30 @@
 
 ## 樂理與音訊驗證
 
-- 樂理資料修改集中於 `theory.js`。
+- 樂理資料修改集中於 `app/domain/theory.ts`。
 - 修改和弦公式、組成音、音階、調弦、指型、轉調或預設行進後，必須安排吉他／樂理專業角色重新驗證。
 - 標準調弦由低音到高音是 E–A–D–G–B–E；畫面指板由上到下顯示高音 E 至低音 E。
 - 指板範圍維持第 1–22 格，除非使用者明確更改需求。
-- 修改節拍或 transport 後，至少檢查 3/4、4/4、四分、八分、十六分、Swing、預備拍、循環與獨立節拍器。
+- 修改節拍或時間軸後，至少檢查 3/4、4/4、七種標準時值、預備拍、空白休止、雙向推動與邊界停止。
 
 ## 驗證原則
 
-- 預設不執行完整測試；僅在使用者明確要求或變更風險需要時執行。
-- JavaScript 修改至少執行受影響模組的語法檢查。
-- 原生模組調整需檢查 import 路徑及循環依賴風險。
+- 新需求或異動必須執行受影響 Vitest、相關 Playwright、`npm run typecheck` 與 `npm run generate`。
+- UI 變更至少驗證桌面與 375px，並檢查深／淺色、鍵盤操作與 console error。
 - 所有變更至少執行 Git 差異格式檢查。
 - UI 或音訊變更需清楚區分靜態檢查、瀏覽器操作驗證與尚未驗證項目。
 - 不得把語法、建置或差異檢查宣稱為完整瀏覽器或音訊驗證。
 
 ## 本機啟動
 
-使用 HTTP 靜態伺服器啟動：
+安裝依賴並啟動 Nuxt：
 
 ```bash
-python3 -m http.server 4173
+npm install
+npm run dev
 ```
 
-瀏覽器開啟 `http://127.0.0.1:4173/`。目前不需要執行 `npm install` 或 build。
+瀏覽器開啟 `http://127.0.0.1:3000/`。靜態部署前執行 `npm run generate`。
 
 ## Git 與機密資料
 

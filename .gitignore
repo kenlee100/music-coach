@@ -9,9 +9,11 @@ node_modules/
 bower_components/
 
 # Build output
-dist/
+dist
 build/
 out/
+.nuxt/
+.output/
 
 # Test output and coverage
 coverage/
