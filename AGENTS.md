@@ -29,8 +29,8 @@
 負責：
 
 - 實作已確認的前端功能、介面行為與響應式調整。
-- 維護原生 ES Modules、DOM 渲染、瀏覽器相容性與無障礙操作。
-- 依既有模組責任修改 `app.js`、`views.js`、`storage.js`、`transport.js`、`audio-engine.js`、`theory.js` 或 `styles.css`。
+- 維護 Nuxt、Vue SFC、TypeScript、瀏覽器相容性與無障礙操作。
+- 依既有模組責任修改 `app/pages/`、`app/components/`、`app/domain/`、`app/services/` 或 `app/assets/css/`。
 - 執行與變更風險相稱的語法、模組路徑、差異格式及瀏覽器操作檢查。
 
 限制：
@@ -139,7 +139,7 @@
 
 - TypeScript、JavaScript 與 Vue SFC 使用 2-space 縮排。
 - 動態文字優先使用 `textContent`、`createElement` 與 `replaceChildren`，不要將儲存資料直接插入 `innerHTML`。
-- 播放器狀態使用 `transport.js` 的明確 phase，不要改回多個互斥布林值。
+- 播放器狀態應維持明確 phase，不要拆成多個互斥布林值。
 - 音訊節點必須可集中停止；修改排程時要考慮 AudioContext 時鐘、前瞻排程、舊回呼及完成狀態。
 - 時間軸以六十四分音符為整數最小單位；事件不得跨小節或重疊。
 - 主題偏好與吉他指板材質偏好必須保持獨立。
